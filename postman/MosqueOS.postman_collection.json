@@ -1,0 +1,410 @@
+{
+  "info": {
+    "_postman_id": "mosqueos-api-collection",
+    "name": "MosqueOS API Collection",
+    "description": "Complete API testing collection for MosqueOS mobile & admin platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login (Coming Soon)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/login",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED\n\nWill handle traditional email/password login alongside Supabase Auth"
+          }
+        },
+        {
+          "name": "Register (Coming Soon)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/register",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED\n\nSelf-service mosque registration"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Donations (PRIORITY)",
+      "item": [
+        {
+          "name": "1️⃣ Create Donation Intent (Mobile)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test: Status should be 200",
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test: Response should have required fields",
+                  "pm.test('Response has client_secret', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('client_secret');",
+                  "    pm.expect(jsonData.data).to.have.property('donation_id');",
+                  "});",
+                  "",
+                  "// Save client_secret for next step",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('client_secret', jsonData.data.client_secret);",
+                  "pm.environment.set('donation_id', jsonData.data.donation_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"donation_type\": \"one_time\",\n  \"purpose\": \"general\",\n  \"donor_name\": \"John Doe\",\n  \"donor_email\": \"john@example.com\",\n  \"donor_phone\": \"+16175551234\",\n  \"is_anonymous\": false\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations/create-intent",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations", "create-intent"]
+            },
+            "description": "**MOBILE APP SENDS THIS REQUEST**\n\n### Request Body (DTO)\n```typescript\n{\n  // Amount in cents\n  // Examples:\n  // 100 = $1.00\n  // 1000 = $10.00\n  // 5000 = $50.00\n  // 10000 = $100.00\n  \"amount\": 1000,\n  \n  // Type of donation\n  // - \"one_time\": Creates PaymentIntent\n  // - \"monthly\": Creates Subscription\n  \"donation_type\": \"one_time\",\n  \n  // Purpose (categorization for reports)\n  // Accepted: general, building_fund, education, ramadan, medical, orphans, widows, students, other\n  \"purpose\": \"general\",\n  \n  // Donor info (for receipts)\n  \"donor_name\": \"John Doe\",\n  \"donor_email\": \"john@example.com\",\n  \"donor_phone\": \"+16175551234\",\n  \n  // Optional fields\n  \"donor_message\": \"May Allah bless this mosque\",\n  \"is_anonymous\": false\n}\n```\n\n### Response\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"donation_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"client_secret\": \"pi_1234_secret_5678\",\n    \"type\": \"payment_intent\",\n    \"amount\": 1000,\n    \"amount_display\": \"$10.00\",\n    \"payment_intent_id\": \"pi_1234\",\n    \"stripe_account\": \"acct_mosque123\",\n    \"created_at\": \"2026-03-15T12:00:00Z\"\n  }\n}\n```\n\n### What Happens Next\n1. Mobile app receives `client_secret`\n2. Pass it to Stripe SDK on mobile\n3. User completes payment in Stripe UI\n4. Webhook confirms payment\n5. Receipt generated & email sent"
+          }
+        },
+        {
+          "name": "2️⃣ Confirm Donation (After Payment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"{{payment_intent_id}}\",\n  \"type\": \"payment_intent\",\n  \"invoice_id\": \"in_1234\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations/confirm",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations", "confirm"]
+            },
+            "description": "⚠️ WEBHOOK HANDLES THIS AUTOMATICALLY\n\nMobile app CAN call this after payment confirmation, or webhook will handle it.\n\nUsed to:\n- Create donation database record\n- Trigger receipt generation\n- Queue receipt email"
+          }
+        },
+        {
+          "name": "3️⃣ Get Donation History (Donor)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations/history",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations", "history"]
+            },
+            "description": "Get authenticated user's donation history for a mosque\n\n### Response\n```json\n[\n  {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"amount\": 1000,\n    \"amount_display\": \"$10.00\",\n    \"donation_type\": \"one_time\",\n    \"purpose\": \"general\",\n    \"status\": \"completed\",\n    \"donor_name\": \"John Doe\",\n    \"created_at\": \"2026-03-15T12:00:00Z\",\n    \"receipt_url\": \"https://s3.amazonaws.com/receipts/donation123.pdf\"\n  },\n  // ... more donations\n]\n```"
+          }
+        },
+        {
+          "name": "4️⃣ List All Donations (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations?page=1&limit=25&status=completed",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            },
+            "description": "List all donations for a mosque (admin only)\n\n### Query Parameters\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 25)\n- `status`: Filter by status (pending|completed|failed|refunded)\n- `purpose`: Filter by purpose\n- `from`: Start date (ISO format)\n- `to`: End date (ISO format)\n\n### Response\n```json\n{\n  \"data\": [\n    {\n      \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"amount\": 1000,\n      \"amount_display\": \"$10.00\",\n      \"donation_type\": \"one_time\",\n      \"purpose\": \"general\",\n      \"status\": \"completed\",\n      \"donor_name\": \"John Doe\",\n      \"donor_email\": \"john@example.com\",\n      \"created_at\": \"2026-03-15T12:00:00Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 25,\n    \"total\": 42,\n    \"pages\": 2\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "5️⃣ Get Donation Summary (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations/summary",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations", "summary"]
+            },
+            "description": "Get donation metrics for admin dashboard\n\n### Response\n```json\n{\n  \"mtd_total\": \"$5,234.50\",\n  \"mtd_total_cents\": 523450,\n  \"unique_donors\": 45,\n  \"active_subscriptions\": 12,\n  \"avg_donation\": \"$115.65\",\n  \"payment_success_rate\": 98.5,\n  \"by_purpose\": {\n    \"general\": \"$3,000.00\",\n    \"building_fund\": \"$1,500.00\",\n    \"education\": \"$500.00\",\n    \"ramadan\": \"$234.50\"\n  },\n  \"by_type\": {\n    \"one_time\": \"$4,234.50\",\n    \"monthly\": \"$1,000.00\"\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "6️⃣ Cancel Subscription (Donor)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/donations/subscriptions/sub_1234",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "donations", "subscriptions", "sub_1234"]
+            },
+            "description": "Cancel a recurring donation subscription\n\n### Response\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"subscription_id\": \"sub_1234\",\n    \"status\": \"canceled\",\n    \"cancellation_reason\": \"User requested cancellation\",\n    \"canceled_at\": \"2026-03-15T12:00:00Z\"\n  }\n}\n```"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Events (Coming Soon)",
+      "item": [
+        {
+          "name": "Create Event (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Taraweeh Prayers\",\n  \"description\": \"Join us for Taraweeh prayers during Ramadan\",\n  \"location\": \"Main Prayer Hall\",\n  \"start_at\": \"2026-04-01T21:30:00Z\",\n  \"end_at\": \"2026-04-01T23:30:00Z\",\n  \"image_url\": null,\n  \"is_public\": true,\n  \"category\": \"prayer\",\n  \"attendance_limit\": null\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/events",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "events"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED"
+          }
+        },
+        {
+          "name": "List Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/events?category=prayer&is_public=true",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "events"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "prayer"
+                },
+                {
+                  "key": "is_public",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📢 Announcements (Coming Soon)",
+      "item": [
+        {
+          "name": "Create Announcement (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Prayer Time Changes\",\n  \"content\": \"Starting March 21, summer prayer times will be in effect.\",\n  \"is_published\": true,\n  \"is_pinned\": true,\n  \"expires_at\": \"2026-06-21T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/mosques/al-noor-houston/announcements",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "mosques", "al-noor-houston", "announcements"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Reminders (Coming Soon)",
+      "item": [
+        {
+          "name": "Get Notification Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/reminders/settings",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "reminders", "settings"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📿 Prayer Times (Coming Soon)",
+      "item": [
+        {
+          "name": "Get Prayer Times for Today",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/prayer-times/today?mosque_slug=al-noor-houston",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "prayer-times", "today"],
+              "query": [
+                {
+                  "key": "mosque_slug",
+                  "value": "al-noor-houston"
+                }
+              ]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Setup",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/",
+              "host": ["{{BASE_URL}}"],
+              "path": [""]
+            },
+            "description": "Simple health check to verify API is running\n\nExpected response: `Hello World!`"
+          }
+        },
+        {
+          "name": "Get Environment Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/api/health",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "health"]
+            },
+            "description": "⚠️ NOT YET IMPLEMENTED\n\nWill return API version, environment, and status"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "disabled": true
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string",
+      "disabled": true
+    },
+    {
+      "key": "client_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "donation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_intent_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

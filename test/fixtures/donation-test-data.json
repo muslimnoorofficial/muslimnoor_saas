@@ -1,0 +1,563 @@
+{
+  "description": "=== MOSQUEOS DONATION API TEST DATA ===\nUse these examples when testing the donations API in Postman.\n\nFor each scenario, copy the request body into your Postman request.\nThe comments explain what should happen.",
+  "test_mosques": [
+    {
+      "name": "Al-Noor Islamic Center (Houston)",
+      "slug": "al-noor-houston",
+      "stripe_account": "acct_alNoorHouston",
+      "description": "Primary test mosque - use this for most tests"
+    },
+    {
+      "name": "Masjid Manhattan (New York)",
+      "slug": "masjid-manhattan",
+      "stripe_account": "acct_masjidManhattan",
+      "description": "Secondary test mosque for multi-tenant testing"
+    },
+    {
+      "name": "Islamic Center of San Francisco",
+      "slug": "masjid-sf",
+      "stripe_account": "acct_masjidSF",
+      "description": "Tertiary test mosque"
+    }
+  ],
+  "test_cards": {
+    "description": "Use these card numbers in Stripe test mode\n\nFor LIVE testing, use real cards with valid expiry & CVC\nFor MOCK testing (Postman), Stripe will auto-succeed with these\n\nSource: https://stripe.com/docs/testing",
+    "success_scenarios": [
+      {
+        "number": "4242424242424242",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "zip": "10003",
+        "scenario": "Standard successful charge"
+      },
+      {
+        "number": "4000002500003155",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "zip": "10003",
+        "scenario": "Requires authentication (3D Secure)"
+      },
+      {
+        "number": "5555555555554444",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "zip": "10003",
+        "scenario": "Mastercard test number"
+      }
+    ],
+    "decline_scenarios": [
+      {
+        "number": "4000000000000002",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "scenario": "Generic decline"
+      },
+      {
+        "number": "4000002000000003",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "scenario": "Insufficient funds"
+      },
+      {
+        "number": "4000000000000069",
+        "exp_month": 12,
+        "exp_year": 2027,
+        "cvc": "123",
+        "scenario": "Lost card"
+      }
+    ]
+  },
+  "scenarios": {
+    "one_time_donation_small": {
+      "name": "One-Time Donation - $10",
+      "description": "Basic one-time donation with all required fields",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 1000,
+        "donation_type": "one_time",
+        "purpose": "general",
+        "donor_name": "John Smith",
+        "donor_email": "john.smith@example.com",
+        "donor_phone": "+14155552671",
+        "donor_message": "May Allah bless this community",
+        "is_anonymous": false
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "donation_id": "uuid-here",
+          "client_secret": "pi_test_xxx_secret_xxx",
+          "type": "payment_intent",
+          "amount": 1000,
+          "amount_display": "$10.00",
+          "payment_intent_id": "pi_xxx",
+          "stripe_account": "acct_alNoorHouston",
+          "created_at": "2026-03-15T12:00:00Z"
+        }
+      },
+      "next_step": "Use client_secret with Stripe iOS/Android SDK to complete payment"
+    },
+    "one_time_donation_large": {
+      "name": "One-Time Donation - $500 (Building Fund)",
+      "description": "Large one-time donation for specific purpose",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 50000,
+        "donation_type": "one_time",
+        "purpose": "building_fund",
+        "donor_name": "Sarah Johnson",
+        "donor_email": "sarah.j@example.com",
+        "donor_phone": "+14155552672",
+        "is_anonymous": false
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "donation_id": "uuid-here",
+          "client_secret": "pi_test_xxx_secret_xxx",
+          "type": "payment_intent",
+          "amount": 50000,
+          "amount_display": "$500.00",
+          "payment_intent_id": "pi_xxx",
+          "stripe_account": "acct_alNoorHouston",
+          "created_at": "2026-03-15T13:00:00Z"
+        }
+      }
+    },
+    "monthly_subscription": {
+      "name": "Monthly Recurring Donation - $25",
+      "description": "Recurring donation charged every month",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 2500,
+        "donation_type": "monthly",
+        "purpose": "general",
+        "donor_name": "Ahmed Hassan",
+        "donor_email": "ahmed.hassan@example.com",
+        "donor_phone": "+14155552673",
+        "donor_message": "Supporting this mosque monthly",
+        "is_anonymous": false
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "donation_id": "uuid-here",
+          "client_secret": "si_test_xxx_secret_xxx",
+          "type": "setup_intent",
+          "amount": 2500,
+          "amount_display": "$25.00/month",
+          "setup_intent_id": "si_xxx",
+          "stripe_account": "acct_alNoorHouston",
+          "created_at": "2026-03-15T14:00:00Z"
+        }
+      },
+      "note": "For monthly donations, Stripe returns a SetupIntent instead of PaymentIntent"
+    },
+    "anonymous_donation": {
+      "name": "Anonymous Donation - $100",
+      "description": "Donation without public name display",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 10000,
+        "donation_type": "one_time",
+        "purpose": "ramadan",
+        "donor_name": "Anonymous Donor",
+        "donor_email": "anonymous@example.com",
+        "is_anonymous": true
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "donation_id": "uuid-here",
+          "client_secret": "pi_test_xxx_secret_xxx",
+          "type": "payment_intent",
+          "amount": 10000,
+          "amount_display": "$100.00"
+        }
+      }
+    },
+    "donation_for_education": {
+      "name": "Donation for Education Fund - $250",
+      "description": "Specific purpose: Education/Scholarships",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 25000,
+        "donation_type": "one_time",
+        "purpose": "education",
+        "donor_name": "Fatima Ahmed",
+        "donor_email": "fatima.ahmed@example.com",
+        "donor_message": "For Quran school scholarships",
+        "is_anonymous": false
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "donation_id": "uuid-here",
+          "client_secret": "pi_test_xxx_secret_xxx"
+        }
+      }
+    },
+    "error_invalid_amount_zero": {
+      "name": "ERROR TEST - Invalid Amount (Zero)",
+      "description": "Amount must be at least $1 (100 cents)",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 0,
+        "donation_type": "one_time",
+        "purpose": "general",
+        "donor_name": "John Doe",
+        "donor_email": "john@example.com"
+      },
+      "expected_response_status": 400,
+      "expected_error": {
+        "success": false,
+        "error": "Validation failed",
+        "messages": ["amount must be greater than or equal to 100"]
+      }
+    },
+    "error_invalid_amount_too_high": {
+      "name": "ERROR TEST - Invalid Amount (Too High)",
+      "description": "Amount must be max $10,000 (1,000,000 cents)",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 1000001,
+        "donation_type": "one_time",
+        "purpose": "general",
+        "donor_name": "John Doe",
+        "donor_email": "john@example.com"
+      },
+      "expected_response_status": 400,
+      "expected_error": {
+        "success": false,
+        "error": "Validation failed",
+        "messages": ["amount must be less than or equal to 1000000"]
+      }
+    },
+    "error_invalid_email": {
+      "name": "ERROR TEST - Invalid Email",
+      "description": "Email format validation fails",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 1000,
+        "donation_type": "one_time",
+        "purpose": "general",
+        "donor_name": "John Doe",
+        "donor_email": "not-an-email",
+        "is_anonymous": false
+      },
+      "expected_response_status": 400,
+      "expected_error": {
+        "success": false,
+        "error": "Validation failed",
+        "messages": ["donor_email must be an email"]
+      }
+    },
+    "error_invalid_donation_type": {
+      "name": "ERROR TEST - Invalid Donation Type",
+      "description": "Must be 'one_time' or 'monthly'",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 1000,
+        "donation_type": "quarterly",
+        "purpose": "general",
+        "donor_name": "John Doe",
+        "donor_email": "john@example.com"
+      },
+      "expected_response_status": 400,
+      "expected_error": {
+        "success": false,
+        "error": "Validation failed",
+        "messages": ["donation_type must be one of 'one_time', 'monthly'"]
+      }
+    },
+    "error_missing_required_fields": {
+      "name": "ERROR TEST - Missing Required Fields",
+      "description": "Amount, donation_type, purpose, donor_name, donor_email are required",
+      "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+      "request": {
+        "amount": 1000,
+        "donation_type": "one_time"
+      },
+      "expected_response_status": 400,
+      "expected_error": {
+        "success": false,
+        "error": "Validation failed",
+        "messages": [
+          "purpose is required",
+          "donor_name is required",
+          "donor_email is required"
+        ]
+      }
+    },
+    "error_mosque_not_found": {
+      "name": "ERROR TEST - Mosque Not Found",
+      "description": "Using non-existent mosque slug",
+      "endpoint": "POST /api/mosques/non-existent-mosque/donations/create-intent",
+      "request": {
+        "amount": 1000,
+        "donation_type": "one_time",
+        "purpose": "general",
+        "donor_name": "John Doe",
+        "donor_email": "john@example.com"
+      },
+      "expected_response_status": 404,
+      "expected_error": {
+        "success": false,
+        "error": "Mosque not found"
+      }
+    }
+  },
+  "authenticated_requests": {
+    "description": "These requests require Authorization header: Bearer <jwt_token>",
+    "get_donation_history": {
+      "name": "Get Donation History (Authenticated)",
+      "description": "Shows current user's donations for a mosque",
+      "endpoint": "GET /api/mosques/al-noor-houston/donations/history",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "expected_response": {
+        "success": true,
+        "data": [
+          {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "amount": 1000,
+            "amount_display": "$10.00",
+            "donation_type": "one_time",
+            "purpose": "general",
+            "status": "completed",
+            "donor_name": "John Doe",
+            "created_at": "2026-03-15T12:00:00Z",
+            "receipt_url": "https://storage.googleapis.com/receipts/donation-123.pdf"
+          },
+          {
+            "id": "660e8400-e29b-41d4-a716-446655440001",
+            "amount": 2500,
+            "amount_display": "$25.00",
+            "donation_type": "monthly",
+            "purpose": "general",
+            "status": "active",
+            "donor_name": "John Doe",
+            "created_at": "2026-02-15T12:00:00Z",
+            "subscription_id": "sub_1234"
+          }
+        ]
+      }
+    },
+    "cancel_subscription": {
+      "name": "Cancel Subscription (Authenticated)",
+      "description": "Stop a recurring donation",
+      "endpoint": "DELETE /api/mosques/al-noor-houston/donations/subscriptions/sub_1234",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "subscription_id": "sub_1234",
+          "status": "canceled",
+          "canceled_at": "2026-03-15T12:00:00Z"
+        }
+      }
+    }
+  },
+  "admin_requests": {
+    "description": "These requests require Admin role and Authorization header: Bearer <admin_jwt_token>",
+    "list_all_donations": {
+      "name": "List All Donations (Admin)",
+      "description": "Paginated list of all mosque donations with filtering",
+      "endpoint": "GET /api/mosques/al-noor-houston/donations",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "query_parameters": {
+        "page": 1,
+        "limit": 25,
+        "status": "completed",
+        "purpose": "general",
+        "from": "2026-03-01T00:00:00Z",
+        "to": "2026-03-31T23:59:59Z"
+      },
+      "expected_response": {
+        "success": true,
+        "data": [
+          {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "amount": 1000,
+            "amount_display": "$10.00",
+            "donation_type": "one_time",
+            "purpose": "general",
+            "status": "completed",
+            "donor_name": "John Doe",
+            "donor_email": "john@example.com",
+            "donor_phone": "+14155552671",
+            "created_at": "2026-03-15T12:00:00Z",
+            "payment_intent_id": "pi_xxx",
+            "receipt_sent_at": "2026-03-15T12:05:00Z"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "limit": 25,
+          "total": 42,
+          "pages": 2
+        }
+      }
+    },
+    "donation_summary": {
+      "name": "Donation Summary (Admin)",
+      "description": "Dashboard metrics for donation trends",
+      "endpoint": "GET /api/mosques/al-noor-houston/donations/summary",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "expected_response": {
+        "success": true,
+        "data": {
+          "mtd_total": "$5,234.50",
+          "mtd_total_cents": 523450,
+          "unique_donors": 45,
+          "active_subscriptions": 12,
+          "avg_donation": "$115.65",
+          "payment_success_rate": 98.5,
+          "by_purpose": {
+            "general": "$3,000.00",
+            "building_fund": "$1,500.00",
+            "education": "$500.00",
+            "ramadan": "$234.50"
+          },
+          "by_type": {
+            "one_time": "$4,234.50",
+            "monthly_recurring": "$1,000.00"
+          }
+        }
+      }
+    }
+  },
+  "test_sequence": {
+    "description": "Recommended order to test all donation features",
+    "steps": [
+      {
+        "step": 1,
+        "name": "Health Check",
+        "what": "Verify API is running",
+        "endpoint": "GET http://localhost:4000/",
+        "expected": "Hello World!"
+      },
+      {
+        "step": 2,
+        "name": "Create Small One-Time Donation",
+        "what": "Basic flow - should return client_secret",
+        "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+        "request": "Use scenario: 'one_time_donation_small'",
+        "expected": "200 OK with client_secret in response"
+      },
+      {
+        "step": 3,
+        "name": "Create Monthly Donation",
+        "what": "Recurring donation flow",
+        "endpoint": "POST /api/mosques/al-noor-houston/donations/create-intent",
+        "request": "Use scenario: 'monthly_subscription'",
+        "expected": "200 OK with setup_intent (not payment_intent)"
+      },
+      {
+        "step": 4,
+        "name": "Test Validation Errors",
+        "what": "Verify error handling",
+        "tests": [
+          "error_invalid_amount_zero",
+          "error_invalid_email",
+          "error_invalid_donation_type",
+          "error_missing_required_fields"
+        ],
+        "expected": "400 Bad Request with descriptive error messages"
+      },
+      {
+        "step": 5,
+        "name": "Test Multiple Mosques",
+        "what": "Multi-tenant isolation",
+        "endpoints": [
+          "POST /api/mosques/al-noor-houston/donations/create-intent",
+          "POST /api/mosques/masjid-manhattan/donations/create-intent",
+          "POST /api/mosques/masjid-sf/donations/create-intent"
+        ],
+        "expected": "Each mosque has separate Stripe account in response"
+      },
+      {
+        "step": 6,
+        "name": "Admin List Donations",
+        "what": "Admin dashboard - requires auth token",
+        "endpoint": "GET /api/mosques/al-noor-houston/donations?page=1&limit=25",
+        "headers": "Authorization: Bearer <admin_token>",
+        "expected": "200 OK with paginated list of mosque donations"
+      },
+      {
+        "step": 7,
+        "name": "Admin Summary Metrics",
+        "what": "Dashboard KPIs",
+        "endpoint": "GET /api/mosques/al-noor-houston/donations/summary",
+        "headers": "Authorization: Bearer <admin_token>",
+        "expected": "200 OK with MTD total, unique donors, active subscriptions"
+      }
+    ]
+  },
+  "feature_completion": {
+    "create_intent": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "POST /api/mosques/:slug/donations/create-intent",
+      "notes": "Mobile app calls this to start donation flow"
+    },
+    "confirm_donation": {
+      "status": "⚠️ WEBHOOK HANDLES",
+      "endpoint": "Optional: POST /api/mosques/:slug/donations/confirm",
+      "notes": "Stripe webhook automatically creates donation record"
+    },
+    "donation_history": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "GET /api/mosques/:slug/donations/history",
+      "auth": "Required",
+      "notes": "Shows current user's donations"
+    },
+    "list_donations": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "GET /api/mosques/:slug/donations",
+      "auth": "Admin only",
+      "notes": "Paginated list with filters"
+    },
+    "donation_summary": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "GET /api/mosques/:slug/donations/summary",
+      "auth": "Admin only",
+      "notes": "Dashboard metrics"
+    },
+    "cancel_subscription": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "DELETE /api/mosques/:slug/donations/subscriptions/:id",
+      "auth": "Required",
+      "notes": "Users can cancel their recurring donations"
+    },
+    "stripe_webhooks": {
+      "status": "✅ IMPLEMENTED",
+      "endpoint": "POST /api/stripe/webhook",
+      "auth": "None (webhook signature verified)",
+      "events_handled": [
+        "payment_intent.succeeded",
+        "payment_intent.payment_failed",
+        "invoice.payment_succeeded",
+        "charge.refunded",
+        "account.updated"
+      ],
+      "notes": "Stripe calls this to confirm payments"
+    },
+    "receipt_generation": {
+      "status": "✅ IMPLEMENTED",
+      "mechanism": "Queue: BullMQ (receipts queue)",
+      "notes": "Generates PDF, uploads to storage, sends email"
+    }
+  }
+}
