@@ -9,6 +9,7 @@ import { SupabaseModule } from './modules/supabase/supabase.module';
 import { EventsModule } from './modules/events/events.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MembersModule } from './modules/members/members.module';
+import { StripeConnectModule } from './modules/stripe/stripe-connect.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MembersModule } from './modules/members/members.module';
     EventsModule,
     AuthModule,
     MembersModule,
+    StripeConnectModule,
   ],
   controllers: [AppController, TestController],
   providers: [AppService],

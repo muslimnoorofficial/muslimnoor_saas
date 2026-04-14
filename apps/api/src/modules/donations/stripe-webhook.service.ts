@@ -77,7 +77,7 @@ export class StripeWebhookService {
     }
 
     // Update donation status
-    await this.supabase.client
+    await this.supabase.admin
       .from('donations')
       .update({
         status: 'completed',
@@ -100,7 +100,7 @@ export class StripeWebhookService {
       return;
     }
 
-    await this.supabase.client
+    await this.supabase.admin
       .from('donations')
       .update({ status: 'failed' })
       .eq('id', donation_id);
@@ -122,7 +122,7 @@ export class StripeWebhookService {
     const paymentIntentId = typeof invoiceObj.payment_intent === 'string' ? invoiceObj.payment_intent : invoiceObj.payment_intent?.id;
 
     // Create a new donation record for this recurring payment
-    const { data: newDonation, error } = await this.supabase.client
+    const { data: newDonation, error } = await this.supabase.admin
       .from('donations')
       .insert({
         mosque_id,
@@ -152,14 +152,14 @@ export class StripeWebhookService {
 
   private async handleChargeRefunded(charge: Stripe.Charge) {
     // Find donation by payment intent
-    const { data: donation } = await this.supabase.client
+    const { data: donation } = await this.supabase.admin
       .from('donations')
       .select('id')
       .eq('stripe_payment_intent_id', charge.payment_intent)
       .single();
 
     if (donation) {
-      await this.supabase.client
+      await this.supabase.admin
         .from('donations')
         .update({ status: 'refunded' })
         .eq('id', donation.id);
@@ -170,21 +170,18 @@ export class StripeWebhookService {
 
   private async handleAccountUpdated(account: Stripe.Account) {
     // Find mosque by stripe_account_id
-    const { data: mosque } = await this.supabase.client
+    const { data: mosque } = await this.supabase.admin
       .from('mosques')
       .select('id')
       .eq('stripe_account_id', account.id)
       .single();
 
     if (mosque) {
-      await this.supabase.client
+      await this.supabase.admin
         .from('mosques')
         .update({
           stripe_charges_enabled: account.charges_enabled ?? false,
           stripe_payouts_enabled: account.payouts_enabled ?? false,
-          stripe_onboarding_completed_at: account.charges_enabled
-            ? new Date().toISOString()
-            : null,
         })
         .eq('id', mosque.id);
 

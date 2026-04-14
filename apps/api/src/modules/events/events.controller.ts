@@ -50,7 +50,9 @@ export class EventsController {
       throw new BadRequestException('Missing authorization header')
     }
 
-    const userId = this.supabaseService.extractUserIdFromToken(authHeader)
+    const token = authHeader.replace('Bearer ', '')
+    const userId = await this.supabaseService.extractUserIdFromToken(token)
+    if (!userId) throw new BadRequestException('Invalid or missing auth token')
 
     // Validate required fields
     if (!body.title || !body.startLocal || !body.endLocal) {
@@ -79,7 +81,9 @@ export class EventsController {
       throw new BadRequestException('Missing authorization header')
     }
 
-    const userId = this.supabaseService.extractUserIdFromToken(authHeader)
+    const token = authHeader.replace('Bearer ', '')
+    const userId = await this.supabaseService.extractUserIdFromToken(token)
+    if (!userId) throw new BadRequestException('Invalid or missing auth token')
 
     // Validate required fields
     if (!body.title || !body.message) {
@@ -129,11 +133,12 @@ export class EventsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const userId = this.supabaseService.extractUserIdFromToken(authHeader)
+    const token = authHeader?.replace('Bearer ', '') ?? ''
+    const userId = await this.supabaseService.extractUserIdFromToken(token)
     const pageNum = parseInt(page || '1', 10)
     const limitNum = parseInt(limit || '10', 10)
 
-    const result = await this.eventsService.getEvents(userId, pageNum, limitNum)
+    const result = await this.eventsService.getEvents(userId ?? '', pageNum, limitNum)
     return {
       success: true,
       ...result,
@@ -146,11 +151,12 @@ export class EventsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const userId = this.supabaseService.extractUserIdFromToken(authHeader)
+    const token = authHeader?.replace('Bearer ', '') ?? ''
+    const userId = await this.supabaseService.extractUserIdFromToken(token)
     const pageNum = parseInt(page || '1', 10)
     const limitNum = parseInt(limit || '10', 10)
 
-    const result = await this.eventsService.getAnnouncements(userId, pageNum, limitNum)
+    const result = await this.eventsService.getAnnouncements(userId ?? '', pageNum, limitNum)
     return {
       success: true,
       ...result,

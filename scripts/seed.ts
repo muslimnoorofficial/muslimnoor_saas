@@ -310,12 +310,12 @@ async function seedDatabase() {
         prayerTimesData.push({
           mosque_id: mosque.id,
           prayer_date: dateStr,
-          fajr: `05:${String(30 + (i % 20)).padStart(2, '0')}`,
-          sunrise: `07:${String(15 + (i % 20)).padStart(2, '0')}`,
-          dhuhr: `12:${String(30 + (i % 20)).padStart(2, '0')}`,
-          asr: `15:${String(45 + (i % 20)).padStart(2, '0')}`,
-          maghrib: `18:${String(20 + (i % 20)).padStart(2, '0')}`,
-          isha: `19:${String(50 + (i % 20)).padStart(2, '0')}`,
+          fajr: `05:${String(30 + (i % 15)).padStart(2, '0')}`,
+          sunrise: `07:${String(15 + (i % 15)).padStart(2, '0')}`,
+          dhuhr: `12:${String(30 + (i % 15)).padStart(2, '0')}`,
+          asr: `15:${String(45 + (i % 10)).padStart(2, '0')}`,
+          maghrib: `18:${String(20 + (i % 15)).padStart(2, '0')}`,
+          isha: `19:${String(30 + (i % 15)).padStart(2, '0')}`,
           hijri_date: `15 Rajab 1445`,
           islamic_month: 'Rajab',
         });
